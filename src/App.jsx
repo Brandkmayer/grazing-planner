@@ -96,7 +96,6 @@ function SortableRow({ row, onChange, onDelete, onSelect, isSelected, onDuplicat
       style={style}
       className={`border-b ${isDragging ? "bg-gray-50" : isSelected ? "bg-blue-50" : "bg-white"}`}
       onClick={() => onSelect(row.id)}
-      onDoubleClick={() => onDuplicate(row.id)}
       title="Click to select; double-click to duplicate"
     >
       <td className="p-2 align-top w-8 text-gray-400">
@@ -843,6 +842,7 @@ export default function GrazingPlanner() {
                             onChange={updateRow}
                             onDelete={deleteRow}
                             onSelect={setSelectedRowId}
+                            onDuplicate={duplicateRow}
                             isSelected={selectedRowId === r.id}
                           />
                         ))}
