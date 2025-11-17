@@ -157,7 +157,7 @@ function SortableRow({ row, onChange, onDelete, onSelect, isSelected, onDuplicat
 }
 
 /* ---------------- Drafts Sidebar ---------------- */
-function DraftsSidebar({ draftsByYear, onSaveDraft, onLoadDraft, onDeleteDraft }) {
+function DraftsSidebar({ draftsByYear, onSaveDraft, onLoadDraft, onDeleteDraft, fullWidth = false}) {
   const [openYears, setOpenYears] = useState(() => {
     // open the current year by default
     const y = String(new Date().getFullYear());
@@ -169,7 +169,7 @@ function DraftsSidebar({ draftsByYear, onSaveDraft, onLoadDraft, onDeleteDraft }
   const years = Object.keys(draftsByYear).sort((a, b) => Number(b) - Number(a)); // newest first
 
   return (
-    <div className="w-[320px] shrink-0 self-start rounded-xl border border-gray-200 bg-white shadow-sm">
+    <div className={`${fullWidth ? "w-full" : "w-[320px]"} shrink-0 self-start rounded-xl border border-gray-200 bg-white shadow-sm`}>
       <div className="p-3 flex items-center justify-between border-b border-gray-100">
         <h3 className="font-semibold text-sm">Drafts</h3>
         <button
@@ -805,9 +805,9 @@ export default function GrazingPlanner() {
         <input ref={fileRef} type="file" accept=".csv,text/csv" className="hidden" onChange={onFileChange} />
         <input ref={geoRef} type="file" accept=".geojson,application/geo+json,application/json" className="hidden" onChange={onGeoFileChange} />
 
-        {/* === MAIN: table + drafts (side-by-side), map below === */}
+        {/* === MAIN: table + map (side-by-side), drafts below === */}
         <div className="mt-6">
-          {/* TABLE (left) + DRAFTS (right) */}
+          {/* TABLE (left) + MAP (right) */}
           <div className="flex gap-4 overflow-x-auto">
             {/* TABLE COLUMN */}
             <div className="flex-1 min-w-[900px]">
@@ -822,7 +822,7 @@ export default function GrazingPlanner() {
                         <th className="p-2 w-40">Herd Size</th>
                         <th className="p-2">Prev. Planned ADA</th>
                         <th className="p-2">Prev. Actual ADA / % Use</th>
-                        <th className="p-2">Est. Introduced ADA (this yr)</th>                        
+                        <th className="p-2">Est. Introduced ADA (this yr)</th>
                         <th className="p-2">Est. Native ADA (this yr)</th>
                         <th className="p-2">Projected Grazing Days</th>
                         <th className="p-2">Proposed ADA (this yr)</th>
@@ -841,8 +841,8 @@ export default function GrazingPlanner() {
                             row={r}
                             onChange={updateRow}
                             onDelete={deleteRow}
-                            onSelect={setSelectedRowId}
                             onDuplicate={duplicateRow}
+                            onSelect={setSelectedRowId}
                             isSelected={selectedRowId === r.id}
                           />
                         ))}
@@ -861,71 +861,75 @@ export default function GrazingPlanner() {
               </DndContext>
             </div>
 
-            {/* DRAFTS COLUMN (fixed width, no wrap) */}
-            <div className="w-80 shrink-0 self-start">
-              <DraftsSidebar
-                draftsByYear={draftsByYear}
-                onSaveDraft={handleSaveDraft}
-                onLoadDraft={handleLoadDraft}
-                onDeleteDraft={handleDeleteDraft}
-              />
+            {/* MAP COLUMN (moved up here) */}
+            <div className="w-full md:w-[520px] xl:w-[640px] shrink-0 self-start rounded-xl border border-gray-200 bg-white shadow-sm">
+              {/* map controls */}
+              <div className="p-2 flex flex-wrap items-center gap-2 border-b border-gray-100">
+                <button
+                  className="rounded-lg bg-white px-3 py-2 shadow border border-gray-200 text-sm hover:bg-gray-50"
+                  onClick={handleGeoUploadClick}
+                >
+                  Import Pasture GeoJSON
+                </button>
+
+                <div className="mx-2 h-5 w-px bg-gray-200" />
+
+                <button className="rounded-lg bg-white px-3 py-2 shadow border border-gray-200 text-sm hover:bg-gray-50" onClick={addEmptyRow}>
+                  <Plus className="mr-1 inline h-4 w-4" /> Add Row
+                </button>
+                <button
+                  className="rounded-lg bg-white px-3 py-2 shadow border border-gray-200 text-sm hover:bg-gray-50"
+                  onClick={copySelectedRow}
+                  disabled={!selectedRowId}
+                  title="Click a row, then copy"
+                >
+                  <CopyIcon className="mr-1 inline h-4 w-4" /> Copy Selected Row
+                </button>
+                <button className="rounded-lg bg-white px-3 py-2 shadow border border-gray-200 text-sm hover:bg-gray-50" onClick={clearTable}>
+                  <Trash2 className="mr-1 inline h-4 w-4" /> Clear Table
+                </button>
+                <button className="rounded-lg bg-white px-3 py-2 shadow border border-gray-200 text-sm hover:bg-gray-50" onClick={restoreDefaults}>
+                  Restore Default Pastures
+                </button>
+
+                <div className="ml-auto text-xs text-gray-600">
+                  Total Projected Days: <span className="font-semibold">{totals.totalDays}</span>
+                </div>
+              </div>
+
+              {/* map itself */}
+              <div className="h-[72vh] min-h-[420px] w-full bg-slate-50">
+                <StaticMap
+                  rows={rows}
+                  featureByPasture={featureByPasture}
+                  allFeatures={allFeatures}
+                  svgRef={svgRef}
+                />
+              </div>
+
+              {/* map exports */}
+              <div className="p-2 flex items-center gap-2 border-t border-gray-100">
+                <StaticMapExportButtons svgRef={svgRef} />
+                <span className="text-xs text-gray-600">
+                  {allFeatures.length
+                    ? `Loaded ${allFeatures.length} polygons • Unmatched rows: ${rows.filter(
+                        r => !featureByPasture[String(r.pasture || '')?.toLowerCase()]
+                      ).length}`
+                    : `Upload a GeoJSON to draw polygons & route.`}
+                </span>
+              </div>
             </div>
           </div>
 
-          {/* MAP (full width below both) */}
-          <div className="mt-4 rounded-xl border border-gray-200 bg-white shadow-sm">
-            <div className="p-2 flex flex-wrap items-center gap-2 border-b border-gray-100">
-              <button
-                className="rounded-lg bg-white px-3 py-2 shadow border border-gray-200 text-sm hover:bg-gray-50"
-                onClick={handleGeoUploadClick}
-              >
-                Import Pasture GeoJSON
-              </button>
-
-              <div className="mx-2 h-5 w-px bg-gray-200" />
-
-              <button className="rounded-lg bg-white px-3 py-2 shadow border border-gray-200 text-sm hover:bg-gray-50" onClick={addEmptyRow}>
-                <Plus className="mr-1 inline h-4 w-4" /> Add Row
-              </button>
-              <button
-                className="rounded-lg bg-white px-3 py-2 shadow border border-gray-200 text-sm hover:bg-gray-50"
-                onClick={copySelectedRow}
-                disabled={!selectedRowId}
-                title="Click a row, then copy"
-              >
-                <CopyIcon className="mr-1 inline h-4 w-4" /> Copy Selected Row
-              </button>
-              <button className="rounded-lg bg-white px-3 py-2 shadow border border-gray-200 text-sm hover:bg-gray-50" onClick={clearTable}>
-                <Trash2 className="mr-1 inline h-4 w-4" /> Clear Table
-              </button>
-              <button className="rounded-lg bg-white px-3 py-2 shadow border border-gray-200 text-sm hover:bg-gray-50" onClick={restoreDefaults}>
-                Restore Default Pastures
-              </button>
-
-              <div className="ml-auto text-xs text-gray-600">
-                Total Projected Days: <span className="font-semibold">{totals.totalDays}</span>
-              </div>
-            </div>
-
-            <div className="h-[72vh] min-h-[420px] w-full bg-slate-50">
-              <StaticMap
-                rows={rows}
-                featureByPasture={featureByPasture}
-                allFeatures={allFeatures}
-                svgRef={svgRef}
-              />
-            </div>
-
-            <div className="p-2 flex items-center gap-2 border-t border-gray-100">
-              <StaticMapExportButtons svgRef={svgRef} />
-              <span className="text-xs text-gray-600">
-                {allFeatures.length
-                  ? `Loaded ${allFeatures.length} polygons • Unmatched rows: ${rows.filter(
-                      r => !featureByPasture[String(r.pasture || '')?.toLowerCase()]
-                    ).length}`
-                  : `Upload a GeoJSON to draw polygons & route.`}
-              </span>
-            </div>
+          {/* DRAFTS BELOW (full width) */}
+          <div className="mt-4">
+            <DraftsSidebar
+              fullWidth
+              draftsByYear={draftsByYear}
+              onSaveDraft={handleSaveDraft}
+              onLoadDraft={handleLoadDraft}
+              onDeleteDraft={handleDeleteDraft}
+            />
           </div>
         </div>
 
