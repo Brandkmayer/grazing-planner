@@ -104,7 +104,7 @@ function SortableRow({ row, onChange, onDelete, onSelect, isSelected, onDuplicat
         </button>
       </td>
 
-      <td className="p-2 align-top w-28">
+      <td className="p-2 align-top w-28 font-semibold tabular-nums">
         <input
           className="w-full rounded border border-gray-200 p-1 outline-none focus:ring"
           value={row.pasture}
@@ -113,34 +113,34 @@ function SortableRow({ row, onChange, onDelete, onSelect, isSelected, onDuplicat
         />
       </td>
 
-      <td className="p-2 align-top w-28">
-        <input className="w-full rounded border border-gray-200 p-1 bg-gray-50 text-gray-700" type="number" step="0.01" value={row.acreage} readOnly title="Acreage is static" />
+      <td className="p-2 align-top w-28 font-semibold tabular-nums">
+        <input className="w-full rounded border border-gray-200 p-1 bg-gray-50 text-gray-700" type="number" step="0.01" value={row.acreage} onChange={(e) => onChange(row.id, { acreage: toNum(e.target.value) })} />
       </td>
 
-      <td className="p-2 align-top w-40">
+      <td className="p-2 align-top w-28 font-semibold tabular-nums">
         <input className="w-full rounded border border-gray-200 p-1" type="number" step="1" min="0" value={row.herdSize} onChange={(e) => onChange(row.id, { herdSize: toNum(e.target.value) })} />
       </td>
 
-      <td className="p-2 align-top w-32 text-sm text-gray-700">{row.prevPlannedADA ?? "—"}</td>
-      <td className="p-2 align-top w-32 text-sm text-gray-700">{row.prevActualADA ?? "—"}</td>
-      <td className="p-2 align-top w-40 text-sm text-gray-900 font-medium">{row.estPerennialADA ?? "—"}</td>
-      <td className="p-2 align-top w-32 text-sm text-gray-900 font-medium">{row.estNativeADA ?? "—"}</td>
+      <td className="p-3 align-top w-32 font-semibold tabular-nums text-gray-700">{row.prevPlannedADA ?? "—"}</td>
+      <td className="p-3 align-top w-34 font-semibold tabular-nums text-gray-700">{row.prevActualADA ?? "—"}</td>
+      <td className="p-3 align-top w-32 font-semibold tabular-nums text-gray-900">{row.estPerennialADA ?? "—"}</td>
+      <td className="p-3 align-top w-32 font-semibold tabular-nums text-gray-900">{row.estNativeADA ?? "—"}</td>
       
 
-      <td className="p-2 align-top w-28">
+      <td className="p-2 align-top w-28 font-bold tabular-nums">
         <input className="w-full rounded border border-gray-200 p-1" type="number" step="1" min="0" value={row.grazingDays} onChange={(e) => onChange(row.id, { grazingDays: toNum(e.target.value) })} />
       </td>
 
-      <td className="p-2 align-top w-32 font-semibold">{row.proposedADA}</td>
+      <td className="p-3 align-top w-28 font-semibold tabular-nums">{row.proposedADA}</td>
 
-      <td className={`p-2 align-top w-40 ${tdSummerCls}`}>
+      <td className={`p-2 align-top w-28 ${tdSummerCls}`}>
         <input className={`${inputBase} ${inputSummerCls} bg-white`} type="date" value={row.startDate} readOnly />
       </td>
-      <td className={`p-2 align-top w-40 ${tdSummerCls}`}>
+      <td className={`p-2 align-top w-28 ${tdSummerCls}`}>
         <input className={`${inputBase} ${inputSummerCls} bg-white`} type="date" value={row.endDate} readOnly />
       </td>
 
-      <td className="p-2 align-top w-40">
+      <td className="p-2 align-top w-32">
         <input className="w-full rounded border border-gray-200 p-1" value={row.notes} onChange={(e) => onChange(row.id, { notes: e.target.value })} placeholder="Notes" />
       </td>
 
@@ -170,7 +170,7 @@ function DraftsSidebar({ draftsByYear, onSaveDraft, onLoadDraft, onDeleteDraft, 
 
   return (
     <div className={`${fullWidth ? "w-full" : "w-[320px]"} shrink-0 self-start rounded-xl border border-gray-200 bg-white shadow-sm`}>
-      <div className="p-3 flex items-center justify-between border-b border-gray-100">
+      <div className="p-3 flex items-center justify-between border-b border-gray-100 gap-2">
         <h3 className="font-semibold text-sm">Drafts</h3>
         <button
           className="rounded bg-indigo-500 text-black text-xs px-2 py-1 hover:bg-indigo-700"
@@ -273,7 +273,7 @@ function StaticMap({ rows, featureByPasture, allFeatures, svgRef }) {
   const x0 = minX - dx * padFrac, x1 = maxX + dx * padFrac;
   const y0 = minY - dy * padFrac, y1 = maxY + dy * padFrac;
 
-  const W = 1000, H = 700;
+  const W = 800, H = 700;
   const sx = W / (x1 - x0), sy = H / (y1 - y0);
   const s = Math.min(sx, sy);
   const ox = (W - s * (x1 - x0)) / 2;
@@ -772,13 +772,13 @@ export default function GrazingPlanner() {
   /* ---------------- Render ---------------- */
   return (
     <div className="min-h-screen bg-gray-100 text-gray-900">
-      <div className="w-full max-w-none px-6 py-6">
+      <div className="w-full max-w-none px-5 py-5">
         <header className="mb-4 flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
           <div>
             <h1 className="text-2xl font-bold">Large Herd Grazing Planner</h1>
             <p className="text-sm text-gray-600">Reorder rows to change sequence; start/end dates update automatically. Save drafts per year on the right.</p>
           </div>
-          <div className="overflow-auto overflow-x-auto rounded-xl border border-gray-200 bg-white shadow-sm">
+          <div className="flex flex-wrap items-center gap-2 rounded-xl border border-gray-200 bg-white shadow-sm p-2">
             <label className="flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-2 shadow-sm">
               <Calendar className="h-4 w-4" />
               <span className="text-sm">Season Start</span>
@@ -806,36 +806,36 @@ export default function GrazingPlanner() {
         <input ref={geoRef} type="file" accept=".geojson,application/geo+json,application/json" className="hidden" onChange={onGeoFileChange} />
 
         {/* === MAIN: table (left) + map (right), no-wrap so it never drops below === */}
-        <div className="mt-6 overflow-x-auto">
+        <div className="overflow-x-auto">
           {/* Flex row with two columns; never wraps */}
-          <div className="flex flex-nowrap items-start gap-4 min-w-[1600px]">
+          <div className="grid gap-4 w-[calc(100vw+900px)]" style={{ gridTemplateColumns: "1750px minmax(1000px,1fr)" }}>
             {/* LEFT COLUMN — Table */}
-            <div className="basis-[700px] shrink-0 min-w-0">
+             <div className="min-w-[560px]">
               <DndContext collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
                 {/* put the table back in a scrollable card */}
                 <div className="overflow-auto rounded-xl border border-gray-200 bg-white shadow-sm">
-                  <table className="w-full table-fixed text-sm leading-tight">
-                    <thead className="sticky top-0 bg-gray-50 text-left text-xs md:text-sm uppercase text-gray-500 tracking-wider z-10">
+                  <table className="w-full table-fixed leading-tight">
+                    <thead className="sticky top-0 bg-gray-50 text-left text-sm md:text-sm uppercase text-gray-500 tracking-wider z-10">
                       <tr>
                         <th className="p-2 w-8"></th>
                         <th className="p-2 w-28">Pasture</th>
                         <th className="p-2">Acreage</th>
-                        <th className="p-2 w-40">Herd Size</th>
+                        <th className="p-2 w-28">Herd Size</th>
                         <th className="p-2">Prev. Planned ADA</th>
                         <th className="p-2">Prev. Actual ADA / % Use</th>
-                        <th className="p-2">Est. Introduced ADA (this yr)</th>
+                        <th className="p-2 w-28">Est. Introduced ADA (this yr)</th>
                         <th className="p-2">Est. Native ADA (this yr)</th>
                         <th className="p-2">Projected Grazing Days</th>
                         <th className="p-2">Proposed ADA (this yr)</th>
                         <th className="p-2">Projected Start</th>
                         <th className="p-2">Projected End</th>
-                        <th className="p-2 w-40">Notes</th>
+                        <th className="p-2 w-28">Notes</th>
                         <th className="p-2 w-16"></th>
                       </tr>
                     </thead>
 
                     <SortableContext items={rows.map(r => r.id)} strategy={verticalListSortingStrategy}>
-                      <tbody>
+                      <tbody className="text-[15px] [&_input]:text-[15px] [&_td]:align-middle">
                         {rows.map((r) => (
                           <SortableRow
                             key={r.id}
@@ -851,7 +851,7 @@ export default function GrazingPlanner() {
                     </SortableContext>
 
                     <tfoot>
-                      <tr className="bg-gray-50 text-xs text-gray-700">
+                      <tr className="bg-gray-50 text-gray-700">
                         <td colSpan={8}></td>
                         <td className="p-2 font-semibold">Total: {totals.totalDays}</td>
                         <td colSpan={5}></td>
@@ -879,9 +879,9 @@ export default function GrazingPlanner() {
             </div>
 
             {/* RIGHT COLUMN — Map + Drafts */}
-            <div className="basis-[900px] grow shrink-0 min-w-0">
-              <div className="rounded-xl border border-gray-200 bg-white shadow-sm">
-                <div className="p-2 flex flex-wrap items-center gap-2 border-b border-gray-100">
+            <div className="min-w-[1200px]">
+              <div className="rounded-xl border bg-white shadow-sm w-full max-w-none">
+                <div className="h-[80vh] w-full bg-slate-50 overflow-hidden">
                   <button
                     className="rounded-lg bg-white px-3 py-2 shadow border border-gray-200 text-sm hover:bg-gray-50"
                     onClick={handleGeoUploadClick}
@@ -894,7 +894,7 @@ export default function GrazingPlanner() {
                   </div>
                 </div>
 
-                <div className="h-[80vh] min-h-[540px] w-full bg-slate-50 overflow-hidden">
+                <div className="h-[80vh] w-full bg-slate-50 overflow-hidden">
                   <StaticMap
                     rows={rows}
                     featureByPasture={featureByPasture}
