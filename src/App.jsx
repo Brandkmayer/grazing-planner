@@ -252,7 +252,7 @@ function DraftsSidebar({ draftsByYear, onSaveDraft, onLoadDraft, onDeleteDraft, 
                               {d.displayName}
                             </div>
                             <button className="p-0.5 rounded hover:bg-gray-100" title="Rename draft" onClick={() => startRename(d)}>
-                              <Pencil className="h-3 w-3 text-gray-500" />
+                              <Pencil className="h-2.5 w-2.5 text-gray-500" />
                             </button>
                           </div>
                         )}
