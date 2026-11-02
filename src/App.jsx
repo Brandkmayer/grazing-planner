@@ -5,7 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import Papa from "papaparse";
 import * as turf from "@turf/turf";
 import { addDays, format, parseISO, isValid, areIntervalsOverlapping } from "date-fns";
-import { Download, Calendar, GripVertical, Save, Trash2, Plus, Copy as CopyIcon, Folder, FileText, ChevronRight, ChevronDown } from "lucide-react";
+import { Download, Calendar, GripVertical, Save, Trash2, Plus, Copy as CopyIcon, Folder, FileText, ChevronRight, ChevronDown, Pencil } from "lucide-react";
 
 // === Namespace per app (separates data across repos on the same domain) ===
 const APP_ID = (import.meta?.env?.BASE_URL || '/')
@@ -166,12 +166,23 @@ function SortableRow({ row, onChange, onDelete, onSelect, isSelected, onDuplicat
 }
 
 /* ---------------- Drafts Sidebar ---------------- */
-function DraftsSidebar({ draftsByYear, onSaveDraft, onLoadDraft, onDeleteDraft, fullWidth = false}) {
+function DraftsSidebar({ draftsByYear, onSaveDraft, onLoadDraft, onDeleteDraft, onRenameDraft, fullWidth = false}) {
   const [openYears, setOpenYears] = useState(() => {
     // open the current year by default
     const y = String(new Date().getFullYear());
     return { [y]: true };
   });
+
+  // inline rename state
+  const [editingId, setEditingId] = useState(null);
+  const [editText, setEditText] = useState("");
+  const cancelEditRef = useRef(false);
+  const startRename = (d) => { cancelEditRef.current = false; setEditingId(d.id); setEditText(d.name || ""); };
+  const commitRename = (y, id) => {
+    if (cancelEditRef.current) { cancelEditRef.current = false; return; }
+    onRenameDraft(y, id, editText);
+    setEditingId(null);
+  };
 
   const toggleYear = (y) => setOpenYears((prev) => ({ ...prev, [y]: !prev[y] }));
 
@@ -198,7 +209,7 @@ function DraftsSidebar({ draftsByYear, onSaveDraft, onLoadDraft, onDeleteDraft, 
         {years.map((y) => {
           const arr = draftsByYear[y] || [];
           // Draft names based on save order (1..n), regardless of timestamp
-          const items = arr.map((d, idx) => ({ ...d, displayName: `Draft ${idx + 1}` }));
+          const items = arr.map((d, idx) => ({ ...d, defaultName: `Draft ${idx + 1}`, displayName: d.name || `Draft ${idx + 1}` }));
 
           return (
             <div key={y} className="rounded-md border border-gray-200 bg-gray-50/60">
@@ -217,8 +228,34 @@ function DraftsSidebar({ draftsByYear, onSaveDraft, onLoadDraft, onDeleteDraft, 
                   {items.map((d) => (
                     <li key={d.id} className="flex items-center gap-2 rounded bg-white border border-gray-200 px-2 py-1">
                       <FileText className="h-4 w-4 text-gray-500" />
-                      <div className="flex-1">
-                        <div className="text-xs font-medium">{d.displayName}</div>
+                      <div className="flex-1 min-w-0">
+                        {editingId === d.id ? (
+                          <input
+                            autoFocus
+                            className="w-full text-xs font-medium rounded border border-indigo-300 px-1 py-0.5"
+                            value={editText}
+                            placeholder={d.defaultName}
+                            onChange={(e) => setEditText(e.target.value)}
+                            onBlur={() => commitRename(y, d.id)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") e.currentTarget.blur();
+                              if (e.key === "Escape") { cancelEditRef.current = true; setEditingId(null); }
+                            }}
+                          />
+                        ) : (
+                          <div className="flex items-center gap-1">
+                            <div
+                              className="text-xs font-medium truncate cursor-text"
+                              title="Double-click to rename"
+                              onDoubleClick={() => startRename(d)}
+                            >
+                              {d.displayName}
+                            </div>
+                            <button className="p-0.5 rounded hover:bg-gray-100" title="Rename draft" onClick={() => startRename(d)}>
+                              <Pencil className="h-3 w-3 text-gray-500" />
+                            </button>
+                          </div>
+                        )}
                         <div className="text-[10px] text-gray-500">
                           {d.startDate ? `Start ${d.startDate}` : "No season start"} • {new Date(d.ts).toLocaleString()}
                         </div>
@@ -357,22 +394,44 @@ function StaticMap({ rows, featureByPasture, allFeatures, svgRef }) {
     return [x1 + (dx2 / L) * d, y1 + (dy2 / L) * d];
   };
 
+  // Moves that travel between the same two pastures (in either direction) would sit
+  // exactly on top of each other. Count them so they can be drawn side by side:
+  // the oldest move is offset to the left (or up), later ones step to the right (or down).
+  const PAIR_GAP = 24;    // px between parallel moves (number circles have r=10)
+  const END_TRIM = 0;  // px trimmed from the arrow end
+  const ptKey = (p) => `${Math.round(p.x)},${Math.round(p.y)}`;
+  const pairCounts = {};
+  const pairInfo = [];
+  for (let i = 0; i < routeAnchors.length - 1; i++) {
+    const k = [ptKey(routeAnchors[i]), ptKey(routeAnchors[i + 1])].sort().join("|");
+    pairCounts[k] = (pairCounts[k] || 0) + 1;
+    pairInfo.push({ k, n: pairCounts[k] - 1 }); // n = 0 for the first time this pair is used
+  }
+
   const segments = [];
   for (let i = 0; i < routeAnchors.length - 1; i++) {
     const a = routeAnchors[i];
     const b = routeAnchors[i + 1];
-    const [sx, sy] = shiftTowards([a.x, a.y], [b.x, b.y], SHIFT_FROM_TEXT);
-    const d = `M ${sx} ${sy} L ${b.x} ${b.y}`;
 
-    const mx = (sx + b.x) / 2;
-    const my = (sy + b.y) / 2;
-    const dx3 = b.x - sx, dy3 = b.y - sy;
-    const L = Math.hypot(dx3, dy3) || 1;
-    const nx = -dy3 / L, ny = dx3 / L;
-    const LABEL_OFFSET = 0;
-    const nxp = mx + nx * LABEL_OFFSET, nyp = my + ny * LABEL_OFFSET;
+    let offX = 0, offY = 0;
+    const { k, n } = pairInfo[i];
+    const count = pairCounts[k];
+    if (count > 1) {
+      const L0 = Math.hypot(b.x - a.x, b.y - a.y) || 1;
+      let px = -(b.y - a.y) / L0, py = (b.x - a.x) / L0;            // unit normal to the line
+      if (px > 1e-6 || (Math.abs(px) <= 1e-6 && py > 0)) { px = -px; py = -py; } // make it point left / up
+      const shift = ((count - 1) / 2 - n) * PAIR_GAP;               // first move = most left
+      offX = px * shift; offY = py * shift;
+    }
 
-    segments.push({ key: `seg-${i}`, d, num: i + 1, labelPos: [nxp, nyp] });
+    const A = [a.x + offX, a.y + offY];
+    const B = [b.x + offX, b.y + offY];
+    const [sx, sy] = shiftTowards(A, B, SHIFT_FROM_TEXT);
+    const [ex, ey] = shiftTowards(B, A, END_TRIM);
+    const d = `M ${sx} ${sy} L ${ex} ${ey}`;
+    const labelPos = [(sx + B[0]) / 2, (sy + B[1]) / 2];
+
+    segments.push({ key: `seg-${i}`, d, num: i + 1, labelPos });
   }
 
   return (
@@ -577,7 +636,7 @@ export default function GrazingPlanner() {
       const idx = prev.findIndex(r => r.id === id);
       if (idx < 0) return prev;
       const copy = { ...prev[idx], id: crypto.randomUUID() };
-      const next = [...prev.slice(0, idx + 1), copy, ...prev.slice(idx + 1)];
+      const next = [...prev, copy]; // copied row goes to the bottom of the list
       return next;
     });
   }
@@ -761,10 +820,19 @@ export default function GrazingPlanner() {
     const arr = draftsByYear[year] || [];
     const d = arr.find(x => x.id === id);
     if (!d) return;
-    if (!confirm(`Load ${year} ${d.name || ""} into the table? This will replace current rows and season start.`)) return;
+    if (!confirm(`Load ${year} "${d.name || "draft"}" into the table? This will replace current rows and season start.`)) return;
     setRows(d.rows.map(r => ({ ...r, id: crypto.randomUUID() }))); // new IDs for DnD
     setStartDate(d.startDate || "");
     setSelectedRowId(null);
+  }
+
+  function handleRenameDraft(year, id, name) {
+    setDraftsByYear((prev) => {
+      const next = { ...prev };
+      next[year] = (next[year] || []).map(d => (d.id === id ? { ...d, name: (name || "").trim() } : d));
+      saveDrafts(next);
+      return next;
+    });
   }
 
   function handleDeleteDraft(year, id) {
@@ -919,6 +987,7 @@ export default function GrazingPlanner() {
                   onSaveDraft={handleSaveDraft}
                   onLoadDraft={handleLoadDraft}
                   onDeleteDraft={handleDeleteDraft}
+                  onRenameDraft={handleRenameDraft}
                 />
               </div>
             </div>
